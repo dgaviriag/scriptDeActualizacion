@@ -11,7 +11,11 @@ public class Actualizacion {
             //Realiza la actualización por cada archivo:
             for (File file : files) {
                 byte[] contenido = Archivo.leerContenido(file);
-                int id = encontrarId(Archivo.obtenerNombreSinFormato(file));//no devolver, si es -1 debe tirar una expeción
+                int id = encontrarId(Archivo.obtenerNombreSinFormato(file));
+                if (id==-1){
+                    System.out.println("'"+file.getName()+"'"+" no existe en la base de datos\n");
+                    continue;//Si no existe en la bd entonces no Actualiza
+                }
                 actualizarFormula(contenido, id);
             }
         }catch (Exception e){
@@ -27,6 +31,7 @@ public class Actualizacion {
         Conexion con = null;
         PreparedStatement sentencia = null;
         ResultSet resultado = null;
+        int id = -1;//Este valor se establece cuando no hay una formula con el nombre del archivo
 
         try{
             String query = "SELECT ID FROM FO_FORMULA WHERE FO_FORMULA.NOMBRE = ?";
@@ -35,26 +40,19 @@ public class Actualizacion {
             sentencia.setString(1, nombreArchivo);
             resultado= sentencia.executeQuery();
 
-            int id = -1;
             while(resultado.next()){
                 id= Integer.parseInt(resultado.getString("ID"));
-                System.out.println(resultado.getString("ID"));
+                System.out.println("El archivo '"+nombreArchivo+"' fue encontrado");
             }
-
-            resultado.close();
-            sentencia.close();
-            con.connection.close();
-
-            return id;
 
         }catch (Exception e){
             e.printStackTrace();
             System.out.println(e.getMessage());
-            return -1;
         }finally {
             try{
                 if (resultado!=null){
                     resultado.close();
+
                 }
             }catch (Exception e){
                 e.printStackTrace();
@@ -63,6 +61,7 @@ public class Actualizacion {
             try{
                 if (sentencia!=null){
                     sentencia.close();
+
                 }
             }catch (Exception e){
                 e.printStackTrace();
@@ -71,12 +70,16 @@ public class Actualizacion {
             try{
                 if (con!=null){
                     con.connection.close();
+
                 }
             }catch (Exception e){
                 e.printStackTrace();
                 System.out.println(e.getMessage());
             }
         }
+
+        return id;
+
     }
 
     public static void actualizarFormula(byte[] contenido, int id){
@@ -86,14 +89,13 @@ public class Actualizacion {
         try {
             String query = "UPDATE FO_FORMULAFLUJO SET FLUJOEJECUCION = ?  WHERE IDFORMULA = ?";//Aquí se tiene una cadena que encapsula una consulta preparada para evitar las inyecciones sql
             con = new Conexion();//Se crea un objeto de tipo Conexion, clase en donde se aloja la conexión con la base de datos
-            //Se ejecuta el método constructor
             sentencia = con.connection.prepareStatement(query);//Uno de los atributos del objeto "con" es otro objeto de tipo PreparedStatement, su argumento es la consulta "query"
 
             sentencia.setBytes(1,contenido);//El primer parametro quiere decir el orden de aparición de "?", y el segundo parametro lo que reemplaza a "?" en la consulta
             sentencia.setInt(2,id);
 
             int filasActualizadas = sentencia.executeUpdate();//Este método ejecuta la consulta y devuelve un Int con la cantidad de filas afectadas
-            System.out.println(filasActualizadas+" fila(s) actualizada(s)");
+            System.out.println(filasActualizadas+" fila(s) actualizada(s)\n");
 
         //A continuación se manejan las excepciones y se cierran las conexiones
         }catch (Exception e){
@@ -148,5 +150,5 @@ public class Actualizacion {
       ,[FORMULABASE]
       ,[IDUNICO]*/
 // INSERT INTO FO_FORMULA (NOMBRE, DESCRIPCION, IDTIPOFORMULA, VPRIVATEELEMENT, IDCOMPANIA, IDCLASEFORMULA, FORMULABASE) VALUES ('pago nuevo', 'Se crea un nuevo pago', 2, 'N', 935, 2, 'N' );
-
+//INSERT INTO FO_FORMULAFLUJO (IDFORMULA, FLUJOEJECUCION) VALUES (29571, NULL );
 }
